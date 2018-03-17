@@ -1,4 +1,4 @@
-# (C) British Crown Copyright 2013 - 2015, Met Office
+# (C) British Crown Copyright 2013 - 2018, Met Office
 #
 # This file is part of Iris.
 #
@@ -26,14 +26,14 @@ import numpy as np
 import numpy.ma as ma
 import iris
 from iris.util import broadcast_to_shape
+import dask.array as da
 
 
 def _ones_like(cube):
     """
     Return a copy of cube with the same mask, but all data values set to 1.
     """
-    ones_cube = cube.copy()
-    ones_cube.data = np.ones_like(cube.data)
+    ones_cube = cube.copy(da.ones_like(cube.core_data()))
     ones_cube.rename('unknown')
     ones_cube.units = 1
     return ones_cube
@@ -107,23 +107,12 @@ def pearsonr(cube_a, cube_b, corr_coords=None, weights=None, mdtol=1.,
     # Match up data masks if required.
     if common_mask:
         # Create a cube of 1's with a common mask.
-        if ma.is_masked(cube_2.data):
-            mask_cube = _ones_like(cube_2)
-        else:
-            mask_cube = 1.
-        if ma.is_masked(cube_1.data):
-            # Take a slice to avoid unnecessary broadcasting of cube_2.
-            slice_coords = [dim_coords_1[i] for i in range(cube_1.ndim) if
-                            dim_coords_1[i] not in common_dim_coords and
-                            np.array_equal(cube_1.data.mask.any(axis=i),
-                                           cube_1.data.mask.all(axis=i))]
-            cube_1_slice = next(cube_1.slices_over(slice_coords))
-            mask_cube = _ones_like(cube_1_slice) * mask_cube
+        mask_cube = _ones_like(cube_1) * _ones_like(cube_2)
+        
         # Apply common mask to data.
-        if isinstance(mask_cube, iris.cube.Cube):
-            cube_1 = cube_1 * mask_cube
-            cube_2 = mask_cube * cube_2
-            dim_coords_2 = [coord.name() for coord in cube_2.dim_coords]
+        cube_1 = cube_1 * mask_cube
+        cube_2 = mask_cube * cube_2
+        dim_coords_2 = dim_coords_1
 
     # Broadcast weights to shape of cubes if necessary.
     if weights is None or cube_1.shape == smaller_shape:
@@ -137,13 +126,10 @@ def pearsonr(cube_a, cube_b, corr_coords=None, weights=None, mdtol=1.,
         dims_1_common = [i for i in range(cube_1.ndim) if
                          dim_coords_1[i] in common_dim_coords]
         weights_1 = broadcast_to_shape(weights, cube_1.shape, dims_1_common)
-        if cube_2.shape != smaller_shape:
-            dims_2_common = [i for i in range(cube_2.ndim) if
-                             dim_coords_2[i] in common_dim_coords]
-            weights_2 = broadcast_to_shape(weights, cube_2.shape,
-                                           dims_2_common)
-        else:
+        if cube_2.shape == smaller_shape:
             weights_2 = weights
+        else:
+            weight_2 = weights_1
 
     # Calculate correlations.
     s1 = cube_1 - cube_1.collapsed(corr_coords, iris.analysis.MEAN,
