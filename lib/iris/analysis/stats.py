@@ -33,7 +33,11 @@ def _ones_like(cube):
     """
     Return a copy of cube with the same mask, but all data values set to 1.
     """
-    ones_cube = cube.copy(da.ones_like(cube.core_data()))
+    core_array = cube.core_data()
+    lazy_ones = da.ma.masked_array(da.ones_like(core_array),
+                                   mask=da.ma.getmaskarray(core_array))
+    ones_cube = cube.copy(lazy_ones)
+
     ones_cube.rename('unknown')
     ones_cube.units = 1
     return ones_cube
@@ -108,7 +112,7 @@ def pearsonr(cube_a, cube_b, corr_coords=None, weights=None, mdtol=1.,
     if common_mask:
         # Create a cube of 1's with a common mask.
         mask_cube = _ones_like(cube_1) * _ones_like(cube_2)
-        
+
         # Apply common mask to data.
         cube_1 = cube_1 * mask_cube
         cube_2 = mask_cube * cube_2
@@ -129,7 +133,7 @@ def pearsonr(cube_a, cube_b, corr_coords=None, weights=None, mdtol=1.,
         if cube_2.shape == smaller_shape:
             weights_2 = weights
         else:
-            weight_2 = weights_1
+            weights_2 = weights_1
 
     # Calculate correlations.
     s1 = cube_1 - cube_1.collapsed(corr_coords, iris.analysis.MEAN,
