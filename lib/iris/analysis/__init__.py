@@ -2020,6 +2020,16 @@ class _Groupby(object):
 
         groupby_bounds = []
 
+        def _slice_sequence(key_slice):
+            """
+            Make sure a slice is a sequence.
+            """
+            if isinstance(key_slice, slice):
+                indices = key_slice.indices(coord.points.shape[dim])
+                return range(*indices)
+            else:
+                return key_slice
+
         # Iterate over the ordered dictionary in order to construct
         # a list of tuple group boundary indexes.
         for key_slice in six.itervalues(self._slices_by_key):
@@ -2046,13 +2056,9 @@ class _Groupby(object):
                     work_arr = work_arr.reshape(work_shape)
 
                     for key_slice in six.itervalues(self._slices_by_key):
-                        if isinstance(key_slice, slice):
-                            indices = key_slice.indices(
-                                coord.points.shape[dim])
-                            key_slice = range(*indices)
-
                         for arr in work_arr:
-                            new_points.append('|'.join(arr.take(key_slice)))
+                            new_points.append(
+                                '|'.join(arr.take(_slice_sequence(key_slice))))
 
                     # Reinstate flattened dimensions. Aggregated dim now leads.
                     new_points = np.array(new_points).reshape(new_shape)
@@ -2067,29 +2073,53 @@ class _Groupby(object):
                 new_bounds = []
 
                 # Construct list of coordinate group boundary pairs.
-                for start, stop in groupby_bounds:
-                    if coord.has_bounds():
-                        # Collapse group bounds into bounds.
-                        if (getattr(coord, 'circular', False) and
-                                (stop + 1) == coord.shape[dim]):
-                            new_bounds.append(
-                                [coord.bounds.take(start, dim).take(0, -1),
-                                 coord.bounds.take(0, dim).take(0, -1) +
-                                 coord.units.modulus])
-                        else:
-                            new_bounds.append(
-                                [coord.bounds.take(start, dim).take(0, -1),
-                                 coord.bounds.take(stop, dim).take(1, -1)])
+                if coord.has_bounds():
+                    # Collapse group bounds into bounds.
+                    if np.all(np.diff(coord.bounds, 1, dim) >= 0):
+                        # Use start and end of each slice.
+                        for start, stop in groupby_bounds:
+                            if (getattr(coord, 'circular', False) and
+                                    (stop + 1) == coord.shape[dim]):
+                                new_bounds.append(
+                                    [coord.bounds.take(start, dim).take(0, -1),
+                                     coord.bounds.take(0, dim).take(0, -1) +
+                                     coord.units.modulus])
+                            else:
+                                new_bounds.append(
+                                    [coord.bounds.take(start, dim).take(0, -1),
+                                     coord.bounds.take(stop, dim).take(1, -1)])
                     else:
-                        # Collapse group points into bounds.
-                        if (getattr(coord, 'circular', False) and
-                                (stop + 1) == len(coord.points)):
-                            new_bounds.append([coord.points.take(start, dim),
-                                               coord.points.take(0, dim) +
-                                               coord.units.modulus])
-                        else:
-                            new_bounds.append([coord.points.take(start, dim),
-                                               coord.points.take(stop, dim)])
+                        # Use min and max of each slice.
+                        for key_slice in six.itervalues(self._slices_by_key):
+                            bounds_slice = coord.bounds.take(
+                                _slice_sequence(key_slice), dim)
+                            new_bounds.append(
+                                [bounds_slice.min(axis=dim),
+                                 bounds_slice.max(axis=dim)])
+
+                else:
+                    # Collapse group points into bounds.
+                    if np.all(np.diff(coord.points, 1, dim) >= 0):
+                        # Use start and end of each slice.
+                        for start, stop in groupby_bounds:
+                            if (getattr(coord, 'circular', False) and
+                                    (stop + 1) == len(coord.points)):
+                                new_bounds.append(
+                                    [coord.points.take(start, dim),
+                                     coord.points.take(0, dim) +
+                                     coord.units.modulus])
+                            else:
+                                new_bounds.append(
+                                    [coord.points.take(start, dim),
+                                     coord.points.take(stop, dim)])
+                    else:
+                        # Use min and max of each slice.
+                        for key_slice in six.itervalues(self._slices_by_key):
+                            points_slice = coord.points.take(
+                                _slice_sequence(key_slice), dim)
+                            new_bounds.append(
+                                [points_slice.min(axis=dim),
+                                 points_slice.max(axis=dim)])
 
                 # Bounds needs to be an array with the length 2 start-stop
                 # dimension last, and the aggregated dimension back in its
