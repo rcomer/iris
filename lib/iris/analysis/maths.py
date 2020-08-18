@@ -26,6 +26,7 @@ from iris.config import get_logger
 import iris.coords
 import iris.cube
 import iris.exceptions
+import iris._lazy_data
 import iris.util
 
 
@@ -816,6 +817,7 @@ def _binary_op_common(
         new_dtype=new_dtype,
         in_place=in_place,
         skeleton_cube=skeleton_cube,
+        force_lazy=iris._lazy_data.is_lazy_data(rhs)
     )
 
     if isinstance(other, iris.cube.Cube):
@@ -904,11 +906,12 @@ def _math_op_common(
     new_dtype=None,
     in_place=False,
     skeleton_cube=False,
+    force_lazy=False,
 ):
     _assert_is_cube(cube)
 
     if in_place and not skeleton_cube:
-        if cube.has_lazy_data():
+        if force_lazy or cube.has_lazy_data():
             cube.data = operation_function(cube.lazy_data())
         else:
             try:
@@ -918,7 +921,10 @@ def _math_op_common(
                 operation_function(cube.data)
         new_cube = cube
     else:
-        data = operation_function(cube.core_data())
+        if force_lazy:
+            data = operation_function(cube.lazy_data())
+        else:
+            data = operation_function(cube.core_data())
         if skeleton_cube:
             # Simply wrap the resultant data in a cube, as no
             # cube metadata is required by the caller.
