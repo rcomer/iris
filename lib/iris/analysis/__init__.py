@@ -1246,8 +1246,7 @@ def _percentile(
 
     data = data.transpose(untouched_dims + axis)
 
-    # Flatten any leading dimensions.
-    if shape:
+    if shape or len(axis) > 1:
         data = data.reshape([np.prod(shape), end_size])
 
     if not isinstance(percent, Iterable):
