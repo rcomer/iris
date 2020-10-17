@@ -1914,8 +1914,6 @@ class Coord(_DimensionalMetadata):
 
         Replaces the points & bounds with a simple bounded region.
         """
-        import dask.array as da
-
         # Ensure dims_to_collapse is a tuple to be able to pass
         # through to numpy
         if isinstance(dims_to_collapse, (int, np.integer)):
@@ -1970,18 +1968,15 @@ class Coord(_DimensionalMetadata):
             else:
                 item = self.core_points()
 
-            # Determine the array library for stacking
-            al = da if _lazy.is_lazy_data(item) else np
-
             # Calculate the bounds and points along the right dims
-            bounds = al.stack(
+            bounds = np.stack(
                 [
                     item.min(axis=dims_to_collapse),
                     item.max(axis=dims_to_collapse),
                 ],
                 axis=-1,
             )
-            points = al.array(bounds.sum(axis=-1) * 0.5, dtype=self.dtype)
+            points = (bounds.sum(axis=-1) * 0.5).astype(self.dtype)
 
             # Create the new collapsed coordinate.
             coord = self.copy(points=points, bounds=bounds)

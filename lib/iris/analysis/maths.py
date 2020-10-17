@@ -15,7 +15,6 @@ import operator
 import warnings
 
 import cf_units
-import dask.array as da
 import numpy as np
 from numpy import ma
 
@@ -119,9 +118,8 @@ def abs(cube, in_place=False):
     """
     _assert_is_cube(cube)
     new_dtype = _output_dtype(np.abs, cube.dtype, in_place=in_place)
-    op = da.absolute if cube.has_lazy_data() else np.abs
     return _math_op_common(
-        cube, op, cube.units, new_dtype=new_dtype, in_place=in_place
+        cube, np.abs, cube.units, new_dtype=new_dtype, in_place=in_place
     )
 
 
@@ -544,9 +542,12 @@ def exp(cube, in_place=False):
     """
     _assert_is_cube(cube)
     new_dtype = _output_dtype(np.exp, cube.dtype, in_place=in_place)
-    op = da.exp if cube.has_lazy_data() else np.exp
     return _math_op_common(
-        cube, op, cf_units.Unit("1"), new_dtype=new_dtype, in_place=in_place
+        cube,
+        np.exp,
+        cf_units.Unit("1"),
+        new_dtype=new_dtype,
+        in_place=in_place,
     )
 
 
@@ -570,10 +571,9 @@ def log(cube, in_place=False):
     """
     _assert_is_cube(cube)
     new_dtype = _output_dtype(np.log, cube.dtype, in_place=in_place)
-    op = da.log if cube.has_lazy_data() else np.log
     return _math_op_common(
         cube,
-        op,
+        np.log,
         cube.units.log(math.e),
         new_dtype=new_dtype,
         in_place=in_place,
@@ -600,9 +600,12 @@ def log2(cube, in_place=False):
     """
     _assert_is_cube(cube)
     new_dtype = _output_dtype(np.log2, cube.dtype, in_place=in_place)
-    op = da.log2 if cube.has_lazy_data() else np.log2
     return _math_op_common(
-        cube, op, cube.units.log(2), new_dtype=new_dtype, in_place=in_place
+        cube,
+        np.log2,
+        cube.units.log(2),
+        new_dtype=new_dtype,
+        in_place=in_place,
     )
 
 
@@ -626,9 +629,12 @@ def log10(cube, in_place=False):
     """
     _assert_is_cube(cube)
     new_dtype = _output_dtype(np.log10, cube.dtype, in_place=in_place)
-    op = da.log10 if cube.has_lazy_data() else np.log10
     return _math_op_common(
-        cube, op, cube.units.log(10), new_dtype=new_dtype, in_place=in_place
+        cube,
+        np.log10,
+        cube.units.log(10),
+        new_dtype=new_dtype,
+        in_place=in_place,
     )
 
 

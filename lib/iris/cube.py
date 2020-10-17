@@ -2927,12 +2927,11 @@ bound=(1994-12-01 00:00:00, 1998-12-01 00:00:00)
             result = chunks[0]
         else:
             chunk_data = [chunk.core_data() for chunk in chunks]
-            if self.has_lazy_data():
-                func = da.concatenate
+            if self.has_lazy_data() or not ma.isMaskedArray(self.data):
+                module = np
             else:
-                module = ma if ma.isMaskedArray(self.data) else np
-                func = module.concatenate
-            data = func(chunk_data, dim)
+                module = ma
+            data = module.concatenate(chunk_data, dim)
             result = iris.cube.Cube(data)
             result.metadata = deepcopy(self.metadata)
 
