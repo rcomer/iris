@@ -58,6 +58,54 @@ __all__ = ["Cube", "CubeList"]
 XML_NAMESPACE_URI = "urn:x-iris:cubeml-0.2"
 
 
+_NP_DISPATCH = {}
+
+
+def _dispatch_register(np_func):
+    def wrapper(func):
+        _NP_DISPATCH[np_func] = func
+        return func
+
+    return wrapper
+
+
+@_dispatch_register(np.sum)
+def _dispatch_sum(*args, **kwargs):
+    cube = args[0]
+    return np.sum(cube.lazy_data())
+
+
+@_dispatch_register(np.mean)
+def _dispatch_mean(*args, **kwargs):
+    from iris.analysis import MEAN
+    from collections import Iterable
+
+    cube = args[0]
+    axis = None
+    result = None
+
+    if "axis" in kwargs:
+        axis = kwargs["axis"]
+
+    if isinstance(axis, int):
+        axis = (axis,)
+
+    if axis is None:
+        coords = cube.coords(dim_coords=True)
+    elif isinstance(axis, Iterable) and not isinstance(axis, str):
+        coords = []
+        for coord in axis:
+            if isinstance(coord, int):
+                coord = cube.coord(dim_coords=True, contains_dimension=coord)
+            coords.append(coord)
+    else:
+        coords = cube.coords(axis)
+
+    result = cube.collapsed(coords, MEAN)
+
+    return result
+
+
 class _CubeFilter:
     """
     A constraint, paired with a list of cubes matching that constraint.
@@ -904,6 +952,18 @@ bound=(1994-12-01 00:00:00, 1998-12-01 00:00:00)
         if ancillary_variables_and_dims:
             for ancillary_variable, dims in ancillary_variables_and_dims:
                 self.add_ancillary_variable(ancillary_variable, dims)
+
+    def __array_function__(self, func, types, args, kwargs):
+        if func not in _NP_DISPATCH:
+            return NotImplemented
+        if not all(issubclass(t, Cube) for t in types):
+            return NotImplemented
+        return _NP_DISPATCH[func](*args, **kwargs)
+
+    def __array__(self):
+        from iris._lazy_data import as_concrete_data
+
+        return as_concrete_data(self.core_data())
 
     @property
     def _names(self):
