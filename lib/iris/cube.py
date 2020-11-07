@@ -92,14 +92,36 @@ def _wrap_collapsed(aggregator, *args, **kwargs):
     else:
         coords = cube.coords(axis)
 
-    return cube.collapsed(coords, aggregator)
+    return cube.collapsed(coords, aggregator), coords
+
+
+@_dispatch_register(np.argmax)
+def _dispatch_argmax(*args, **kwargs):
+    from iris.analysis import ARGMAX
+
+    index_cube, coords = _wrap_collapsed(ARGMAX, *args, **kwargs)
+    shape = tuple()
+    for coord in coords:
+        shape += coord.shape
+    indices = np.unravel_index(index_cube.data, shape)
+
+    result = []
+    for coord, index in zip(coords, indices):
+        new_cube = index_cube.copy(coord.points[index])
+        new_cube.metadata = coord.metadata
+        result.append(new_cube)
+
+    if len(result) == 1:
+        (result,) = result
+
+    return result
 
 
 @_dispatch_register(np.mean)
 def _dispatch_mean(*args, **kwargs):
     from iris.analysis import MEAN
 
-    result = _wrap_collapsed(MEAN, *args, **kwargs)
+    result, _ = _wrap_collapsed(MEAN, *args, **kwargs)
 
     return result
 
@@ -108,7 +130,7 @@ def _dispatch_mean(*args, **kwargs):
 def _dispatch_sum(*args, **kwargs):
     from iris.analysis import SUM
 
-    result = _wrap_collapsed(SUM, *args, **kwargs)
+    result, _ = _wrap_collapsed(SUM, *args, **kwargs)
 
     return result
 
