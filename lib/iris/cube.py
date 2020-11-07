@@ -75,14 +75,11 @@ def _dispatch_sum(*args, **kwargs):
     return np.sum(cube.lazy_data())
 
 
-@_dispatch_register(np.mean)
-def _dispatch_mean(*args, **kwargs):
-    from iris.analysis import MEAN
+def _wrap_collapsed(aggregator, *args, **kwargs):
     from collections import Iterable
 
     cube = args[0]
     axis = None
-    result = None
 
     if "axis" in kwargs:
         axis = kwargs["axis"]
@@ -101,7 +98,14 @@ def _dispatch_mean(*args, **kwargs):
     else:
         coords = cube.coords(axis)
 
-    result = cube.collapsed(coords, MEAN)
+    return cube.collapsed(coords, aggregator)
+
+
+@_dispatch_register(np.mean)
+def _dispatch_mean(*args, **kwargs):
+    from iris.analysis import MEAN
+
+    result = _wrap_collapsed(MEAN, *args, **kwargs)
 
     return result
 
