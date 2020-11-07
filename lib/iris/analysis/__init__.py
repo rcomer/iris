@@ -1531,6 +1531,25 @@ def _peak(array, **kwargs):
 #
 # Common partial Aggregation class constructors.
 #
+
+
+ARGMAX = Aggregator("max_location", ma.argmax, units_func=lambda units: 1)
+"""
+An :class:`~iris.analysis.Aggregator` instance that identifies the location
+of the maximum over a :class:`~iris.cube.Cube`, as computed by
+:func:`numpy.ma.argmax`.
+
+**For example**:
+
+To compute locations of zonal maximums over the *longitude* axis of a cube::
+
+    result = cube.collapsed('longitude', iris.analysis.ARGMAX)
+
+This aggregator handles masked data.
+
+"""
+
+
 COUNT = Aggregator(
     "count",
     iris._lazy_data.non_lazy(_lazy_count),
