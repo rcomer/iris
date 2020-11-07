@@ -69,12 +69,6 @@ def _dispatch_register(np_func):
     return wrapper
 
 
-@_dispatch_register(np.sum)
-def _dispatch_sum(*args, **kwargs):
-    cube = args[0]
-    return np.sum(cube.lazy_data())
-
-
 def _wrap_collapsed(aggregator, *args, **kwargs):
     from collections import Iterable
 
@@ -106,6 +100,15 @@ def _dispatch_mean(*args, **kwargs):
     from iris.analysis import MEAN
 
     result = _wrap_collapsed(MEAN, *args, **kwargs)
+
+    return result
+
+
+@_dispatch_register(np.sum)
+def _dispatch_sum(*args, **kwargs):
+    from iris.analysis import SUM
+
+    result = _wrap_collapsed(SUM, *args, **kwargs)
 
     return result
 
