@@ -314,6 +314,11 @@ class Resolve:
         #: :class:`~iris.cube.Cube`.
         self.prepared_category = None  # set in _metadata_prepare
 
+        # List to contain any error messages due to points/bounds mismatches.
+        self._mismatched_points_bounds_errors = (
+            []
+        )  # populated and used in _metadata_prepare
+
         #: Cache containing a list of aux factories prepared and ready for
         #: creating and attaching to the resultant resolved
         #: :class:`~iris.cube.Cube`.
@@ -1324,6 +1329,12 @@ class Resolve:
             self.prepared_category.items_aux,  # output
         )
 
+        # Raise any points/bounds mismatches together.
+        print(self._mismatched_points_bounds_errors)
+        if self._mismatched_points_bounds_errors:
+            emsg = "/n".join(self._mismatched_points_bounds_errors)
+            raise ValueError(emsg)
+
         # Determine the resultant cube scalar coordinate/s.
         self._prepare_common_aux_payload(
             src_aux_coverage.common_items_scalar,  # input
@@ -2191,7 +2202,7 @@ class Resolve:
                                 f"LHS cube {self.lhs_cube.name()!r} and "
                                 f"RHS cube {self.rhs_cube.name()!r}."
                             )
-                            raise ValueError(emsg)
+                            self._mismatched_points_bounds_errors.append(emsg)
                 else:
                     # For lenient, use either of the coordinate bounds, if they exist.
                     if LENIENT["maths"]:
@@ -2218,14 +2229,14 @@ class Resolve:
                                 f"{self._src_cube_position} cube {self._src_cube.name()!r}, "
                                 f"but not the {self._tgt_cube_position} cube {self._tgt_cube.name()!r}."
                             )
-                            raise ValueError(emsg)
+                            self._mismatched_points_bounds_errors.append(emsg)
                         if tgt_has_bounds:
                             emsg = (
                                 f"Coordinate {tgt_coord.name()!r} has bounds for the "
                                 f"{self._tgt_cube_position} cube {self._tgt_cube.name()!r}, "
                                 f"but not the {self._src_cube_position} cube {self._src_cube.name()!r}."
                             )
-                            raise ValueError(emsg)
+                            self._mismatched_points_bounds_errors.append(emsg)
             else:
                 if LENIENT["maths"] and ignore_mismatch:
                     # For lenient, ignore coordinate with mis-matched points.
@@ -2241,7 +2252,7 @@ class Resolve:
                         f"LHS cube {self.lhs_cube.name()!r} and "
                         f"RHS cube {self.rhs_cube.name()!r}."
                     )
-                    raise ValueError(emsg)
+                    self._mismatched_points_bounds_errors.append(emsg)
 
         return points, bounds
 
