@@ -57,6 +57,34 @@ def get_params():
                 yield example, i
 
 
+# Make a class for the GloSea example as it's particularly slow running, so we
+# only want to run it once for the two tests.  Also define it before the other
+# tests so it is queued up first.
+@pytest.mark.xdist_group(name="group1")
+class TestLagged:
+    @pytest.fixture(scope="class")
+    def get_figures(
+        self,
+        class_image_setup_teardown,
+        class_iris_future_defaults,
+        monkeypatching,
+    ):
+
+        module = importlib.import_module("plot_lagged_ensemble")
+        module.main()
+
+        figs = [plt.figure(fig_num) for fig_num in plt.get_fignums()]
+        return figs
+
+    @pytest.mark.filterwarnings("error::iris.IrisDeprecation")
+    @pytest.mark.parametrize("fig_index", [0, 1], ids=lambda arg: f"fig{arg}")
+    def test_lagged_example(self, get_figures, fig_index):
+        assert len(get_figures) == 2
+        plt.figure(get_figures[fig_index])
+        image_id = f"gallery_tests.test_plot_lagged_ensemble.{fig_index}"
+        check_graphic(image_id)
+
+
 @pytest.mark.filterwarnings("error::iris.IrisDeprecation")
 @pytest.mark.parametrize(
     "example", get_params(), ids=lambda arg: f"{arg[0]}-fig{arg[1]}"
@@ -83,29 +111,3 @@ def test_plot_example(
     plt.figure(fig_index + 1)
     image_id = f"gallery_tests.test_{example_code}.{fig_index}"
     check_graphic(image_id)
-
-
-# Make a class for the GloSea example as it's particularly slow running, so we
-# only want to run it once for the two tests.
-class TestLagged:
-    @pytest.fixture(scope="class")
-    def get_figures(
-        self,
-        class_image_setup_teardown,
-        class_iris_future_defaults,
-        monkeypatching,
-    ):
-
-        module = importlib.import_module("plot_lagged_ensemble")
-        module.main()
-
-        figs = [plt.figure(fig_num) for fig_num in plt.get_fignums()]
-        return figs
-
-    @pytest.mark.filterwarnings("error::iris.IrisDeprecation")
-    @pytest.mark.parametrize("fig_index", [0, 1], ids=lambda arg: f"fig{arg}")
-    def test_lagged_example(self, get_figures, fig_index):
-        assert len(get_figures) == 2
-        plt.figure(get_figures[fig_index])
-        image_id = f"gallery_tests.test_plot_lagged_ensemble.{fig_index}"
-        check_graphic(image_id)
