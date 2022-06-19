@@ -14,31 +14,87 @@ from iris.tests.graphics import check_graphic
 
 from .conftest import GALLERY_DIR
 
+TWO_FIG_EXAMPLES = [
+    "plot_atlantic_profiles",
+    "plot_cross_section",
+    "plot_lagged_ensemble",
+    "plot_wind_speed",
+    "plot_projections_and_annotations",
+]
+
+FOUR_FIG_EXAMPLES = ["plot_orca_projection", "rotated_pole_mapping"]
+
 
 def gallery_examples():
     """Generator to yield all current gallery examples."""
-
+    
     for example_file in GALLERY_DIR.glob("*/plot*.py"):
         yield example_file.stem
 
 
+def get_params():
+    """
+    Generator to yield sequence of (example, fig_number) pairs for gallery examples.
+    Every figure from the examples is represented by one pair (except for the lagged
+    ensemble example, which is handled separately).
+
+    """
+    for example in gallery_examples():
+        if example == "plot_lagged_ensemble":
+            continue
+        elif example in TWO_FIG_EXAMPLES:
+            for i in range(2):
+                yield example, i
+        elif example in FOUR_FIG_EXAMPLES:
+            for i in range(4):
+                yield example, i
+        else:
+            yield example, 0
+
+
 @pytest.mark.filterwarnings("error::iris.IrisDeprecation")
-@pytest.mark.parametrize("example", gallery_examples())
+@pytest.mark.parametrize(
+    "example", get_params(), ids=lambda arg: f"{arg[0]}-fig{arg[1]}"
+)
 def test_plot_example(
     example,
     image_setup_teardown,
     import_patches,
     iris_future_defaults,
+    monkeypatching,
 ):
     """Test that all figures from example code match KGO."""
 
-    module = importlib.import_module(example)
+    example_code, fig_index = example
+    module = importlib.import_module(example_code)
 
     # Run example.
     module.main()
-    # Loop through open figures and set each to be the current figure so check_graphic
-    # will find it.
-    for fig_num in plt.get_fignums():
-        plt.figure(fig_num)
-        image_id = f"gallery_tests.test_{example}.{fig_num - 1}"
-        check_graphic(image_id, _RESULT_PATH)
+    plt.figure(fig_index + 1)
+    image_id = f"gallery_tests.test_{example_code}.{fig_index}"
+    check_graphic(image_id)
+
+
+# Make a class for the GloSea example as it's particularly slow running, so we
+# only want to run it once for the two tests.
+class TestLagged:
+    @pytest.fixture(scope="class")
+    def get_figures(
+        self,
+        class_image_setup_teardown,
+        class_iris_future_defaults,
+        monkeypatching,
+    ):
+
+        module = importlib.import_module("plot_lagged_ensemble")
+        module.main()
+
+        figs = [plt.figure(fig_num) for fig_num in plt.get_fignums()]
+        return figs
+
+    @pytest.mark.filterwarnings("error::iris.IrisDeprecation")
+    @pytest.mark.parametrize("fig_index", [0, 1], ids=lambda arg: f"fig{arg}")
+    def test_lagged_example(self, get_figures, fig_index):
+        plt.figure(get_figures[fig_index])
+        image_id = f"gallery_tests.test_plot_lagged_ensemble.{fig_index}"
+        check_graphic(image_id)

@@ -17,8 +17,7 @@ CURRENT_DIR = pathlib.Path(__file__).resolve()
 GALLERY_DIR = CURRENT_DIR.parents[1] / "gallery_code"
 
 
-@pytest.fixture
-def image_setup_teardown():
+def _image_setup_teardown():
     """
     Setup and teardown fixture.
 
@@ -31,28 +30,7 @@ def image_setup_teardown():
     plt.close("all")
 
 
-@pytest.fixture
-def import_patches(monkeypatch):
-    """
-    Replace plt.show() with a function that does nothing, also add all the
-    gallery examples to sys.path.
-
-    """
-
-    def no_show():
-        pass
-
-    monkeypatch.setattr(plt, "show", no_show)
-
-    for example_dir in GALLERY_DIR.iterdir():
-        if example_dir.is_dir():
-            monkeypatch.syspath_prepend(example_dir)
-
-    yield
-
-
-@pytest.fixture
-def iris_future_defaults():
+def _iris_future_defaults():
     """
     Create a fixture which resets all the iris.FUTURE settings to the defaults,
     as otherwise changes made in one test can affect subsequent ones.
@@ -64,4 +42,36 @@ def iris_future_defaults():
         # Avoid a warning when setting these !
         del default_future_kwargs[dead_option]
     with iris.FUTURE.context(**default_future_kwargs):
+        yield
+
+
+# Make function and class scoped fixtures.
+image_setup_teardown = pytest.fixture(_image_setup_teardown)
+class_image_setup_teardown = pytest.fixture(
+    _image_setup_teardown, scope="class"
+)
+
+iris_future_defaults = pytest.fixture(_iris_future_defaults)
+class_iris_future_defaults = pytest.fixture(
+    _iris_future_defaults, scope="class"
+)
+
+
+@pytest.fixture(scope="module")
+def monkeypatching():
+    """
+    Replace plt.show() with a function that does nothing, also add all the
+    gallery examples to sys.path.  Done once for the whole test module.
+
+    """
+
+    def no_show():
+        pass
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(plt, "show", no_show)
+        for example_dir in GALLERY_DIR.iterdir():
+            if example_dir.is_dir():
+                mp.syspath_prepend(example_dir)
+
         yield
