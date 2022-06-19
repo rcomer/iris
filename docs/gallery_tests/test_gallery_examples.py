@@ -22,7 +22,7 @@ TWO_FIG_EXAMPLES = [
     "plot_projections_and_annotations",
 ]
 
-FOUR_FIG_EXAMPLES = ["plot_orca_projection", "rotated_pole_mapping"]
+FOUR_FIG_EXAMPLES = ["plot_orca_projection", "plot_rotated_pole_mapping"]
 
 
 def gallery_examples():
@@ -30,6 +30,16 @@ def gallery_examples():
     
     for example_file in GALLERY_DIR.glob("*/plot*.py"):
         yield example_file.stem
+
+
+def expected_fignums(example_code):
+    """How many figures we think are in each example."""
+    if example_code in TWO_FIG_EXAMPLES:
+        return 2
+    elif example_code in FOUR_FIG_EXAMPLES:
+        return 4
+    else:
+        return 1
 
 
 def get_params():
@@ -42,14 +52,9 @@ def get_params():
     for example in gallery_examples():
         if example == "plot_lagged_ensemble":
             continue
-        elif example in TWO_FIG_EXAMPLES:
-            for i in range(2):
-                yield example, i
-        elif example in FOUR_FIG_EXAMPLES:
-            for i in range(4):
-                yield example, i
         else:
-            yield example, 0
+            for i in range(expected_fignums(example)):
+                yield example, i
 
 
 @pytest.mark.filterwarnings("error::iris.IrisDeprecation")
@@ -70,6 +75,11 @@ def test_plot_example(
 
     # Run example.
     module.main()
+
+    # Sanity check we have the right number of figures.
+    assert len(plt.get_fignums()) == expected_fignums(example_code)
+
+    # Compare chosen figure to KGO.
     plt.figure(fig_index + 1)
     image_id = f"gallery_tests.test_{example_code}.{fig_index}"
     check_graphic(image_id)
@@ -95,6 +105,7 @@ class TestLagged:
     @pytest.mark.filterwarnings("error::iris.IrisDeprecation")
     @pytest.mark.parametrize("fig_index", [0, 1], ids=lambda arg: f"fig{arg}")
     def test_lagged_example(self, get_figures, fig_index):
+        assert len(get_figures) == 2
         plt.figure(get_figures[fig_index])
         image_id = f"gallery_tests.test_plot_lagged_ensemble.{fig_index}"
         check_graphic(image_id)
