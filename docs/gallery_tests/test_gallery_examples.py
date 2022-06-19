@@ -32,7 +32,7 @@ def gallery_examples():
         yield example_file.stem
 
 
-def expected_fignums(example_code):
+def expected_figcounts(example_code):
     """How many figures we think are in each example."""
     if example_code in TWO_FIG_EXAMPLES:
         return 2
@@ -53,7 +53,7 @@ def get_params():
         if example == "plot_lagged_ensemble":
             continue
         else:
-            for i in range(expected_fignums(example)):
+            for i in range(expected_figcounts(example)):
                 yield example, i
 
 
@@ -67,7 +67,7 @@ class TestLagged:
         self,
         class_image_setup_teardown,
         class_iris_future_defaults,
-        monkeypatching,
+        import_patching,
     ):
 
         module = importlib.import_module("plot_lagged_ensemble")
@@ -94,7 +94,7 @@ def test_plot_example(
     image_setup_teardown,
     import_patches,
     iris_future_defaults,
-    monkeypatching,
+    import_patching,
 ):
     """Test that all figures from example code match KGO."""
 
@@ -105,7 +105,7 @@ def test_plot_example(
     module.main()
 
     # Sanity check we have the right number of figures.
-    assert len(plt.get_fignums()) == expected_fignums(example_code)
+    assert len(plt.get_fignums()) == expected_figcounts(example_code)
 
     # Compare chosen figure to KGO.
     plt.figure(fig_index + 1)
