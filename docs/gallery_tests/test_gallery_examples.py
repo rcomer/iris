@@ -27,7 +27,7 @@ FOUR_FIG_EXAMPLES = ["plot_orca_projection", "plot_rotated_pole_mapping"]
 
 def gallery_examples():
     """Generator to yield all current gallery examples."""
-    
+
     for example_file in GALLERY_DIR.glob("*/plot*.py"):
         yield example_file.stem
 
@@ -67,7 +67,7 @@ class TestLagged:
         self,
         class_image_setup_teardown,
         class_iris_future_defaults,
-        import_patching,
+        import_patches,
     ):
 
         module = importlib.import_module("plot_lagged_ensemble")
@@ -94,7 +94,6 @@ def test_plot_example(
     image_setup_teardown,
     import_patches,
     iris_future_defaults,
-    import_patching,
 ):
     """Test that all figures from example code match KGO."""
 

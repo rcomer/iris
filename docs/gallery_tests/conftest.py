@@ -58,7 +58,7 @@ class_iris_future_defaults = pytest.fixture(
 
 
 @pytest.fixture(scope="module")
-def import_patching():
+def import_patches():
     """
     Replace plt.show() with a function that does nothing, also add all the
     gallery examples to sys.path.  Done once for the whole test module.
