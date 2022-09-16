@@ -1010,90 +1010,26 @@ def _all_other_rules(f):
                 )
             )
         )
-        and f.lbmon == 12
         and f.lbdat == 1
         and f.lbhr == 0
         and f.lbmin == 0
-        and f.lbmond == 3
         and f.lbdatd == 1
         and f.lbhrd == 0
         and f.lbmind == 0
     ):
-        aux_coords_and_dims.append(
-            (AuxCoord("djf", long_name="season", units="no_unit"), None)
-        )
+        SEASON_MAP = {
+            (12, 3): "djf",
+            (3, 6): "mam",
+            (6, 9): "jja",
+            (9, 12): "son",
+        }
 
-    if (
-        f.lbtim.ib == 3
-        and f.lbtim.ic in [1, 2, 4]
-        and (
-            (len(f.lbcode) != 5)
-            or (
-                len(f.lbcode) == 5
-                and f.lbcode.ix not in [20, 21, 22, 23]
-                and f.lbcode.iy not in [20, 21, 22, 23]
-            )
-        )
-        and f.lbmon == 3
-        and f.lbdat == 1
-        and f.lbhr == 0
-        and f.lbmin == 0
-        and f.lbmond == 6
-        and f.lbdatd == 1
-        and f.lbhrd == 0
-        and f.lbmind == 0
-    ):
-        aux_coords_and_dims.append(
-            (AuxCoord("mam", long_name="season", units="no_unit"), None)
-        )
+        season = SEASON_MAP.get(f.lbmon, f.lbmond)
 
-    if (
-        f.lbtim.ib == 3
-        and f.lbtim.ic in [1, 2, 4]
-        and (
-            (len(f.lbcode) != 5)
-            or (
-                len(f.lbcode) == 5
-                and f.lbcode.ix not in [20, 21, 22, 23]
-                and f.lbcode.iy not in [20, 21, 22, 23]
+        if season is not None:
+            aux_coords_and_dims.append(
+                (AuxCoord(season, long_name="season", units="no_unit"), None)
             )
-        )
-        and f.lbmon == 6
-        and f.lbdat == 1
-        and f.lbhr == 0
-        and f.lbmin == 0
-        and f.lbmond == 9
-        and f.lbdatd == 1
-        and f.lbhrd == 0
-        and f.lbmind == 0
-    ):
-        aux_coords_and_dims.append(
-            (AuxCoord("jja", long_name="season", units="no_unit"), None)
-        )
-
-    if (
-        f.lbtim.ib == 3
-        and f.lbtim.ic in [1, 2, 4]
-        and (
-            (len(f.lbcode) != 5)
-            or (
-                len(f.lbcode) == 5
-                and f.lbcode.ix not in [20, 21, 22, 23]
-                and f.lbcode.iy not in [20, 21, 22, 23]
-            )
-        )
-        and f.lbmon == 9
-        and f.lbdat == 1
-        and f.lbhr == 0
-        and f.lbmin == 0
-        and f.lbmond == 12
-        and f.lbdatd == 1
-        and f.lbhrd == 0
-        and f.lbmind == 0
-    ):
-        aux_coords_and_dims.append(
-            (AuxCoord("son", long_name="season", units="no_unit"), None)
-        )
 
     # Special case where year is zero and months match.
     # Month coordinates (--> scalar coordinates)
