@@ -131,6 +131,7 @@ class TestRunner:
         args = [
             None,
             f"-n={self.num_processors}",
+            "--dist=loadgroup",  # currently only gallery tests use grouping.
         ]
 
         if self.stop:
